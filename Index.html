@@ -152,7 +152,7 @@ let TOKEN = localStorage.getItem('rtr_token') || '';
 let NAMA = '', PROD = null, PHOTOS = [], VIDEO = null, TMR = null, TMN = null, BUSY = false;
 
 const $ = id => document.getElementById(id);
-const API_URL = 'GANTI_DENGAN_URL_EXEC_APPS_SCRIPT';   // <-- tempel URL /exec Apps Script Anda di sini
+const API_URL = 'https://script.google.com/macros/s/AKfycby2B--l_KSUgYrMyypyP3ZPjQRN4WLAhKnp608XvOOSDBI7F4i05jZkmbJEtHFwoL4_/exec';   // <-- tempel URL /exec Apps Script Anda di sini
 
 async function apiGet(p) {
   const u = new URL(API_URL);
@@ -168,7 +168,7 @@ const idOf = u => { const m = String(u).match(/\/d\/([\w-]+)/); return m ? m[1] 
 const tdkAda = e => /tidak ditemukan/i.test(e.message);
 
 async function run(fn, ...a) {
-  if (API_URL.indexOf('GANTI') === 0) throw new Error('Alamat API belum diisi di file index.html');
+  if (API_URL.indexOf('https://script.google.com/macros/s/AKfycby2B--l_KSUgYrMyypyP3ZPjQRN4WLAhKnp608XvOOSDBI7F4i05jZkmbJEtHFwoL4_/exec') === 0) throw new Error('Alamat API belum diisi di file index.html');
   switch (fn) {
     case 'getConfig': { const j = await apiGet({ app: 'names' }); return { names: j.names, trips: j.trips }; }
     case 'checkSession':
