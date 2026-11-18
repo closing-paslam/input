@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:Roboto,system-ui,-apple-system,Segoe UI,sans-serif;background:#f7f8fa;color:#2b2f36}
+  .bar{display:flex;align-items:center;gap:16px;height:56px;padding:0 16px;background:#fff;border-bottom:1px solid #e3e6ea;position:sticky;top:0;z-index:5}
+  .bar h1{font-size:18px;font-weight:400;margin:0;flex:1;letter-spacing:.3px}
+  .bar a{font-size:13px;color:#c62828;text-decoration:none}
+  .bar small{color:#6b7785;font-size:12px;display:block}
+  .box{background:#fff;padding:8px 20px 24px}
+  label.t{display:block;font-size:15px;color:#3b4047;margin:22px 0 8px;text-transform:uppercase;letter-spacing:.3px}
+  label.t em{color:#d32f2f;font-style:normal;margin-left:2px}
+  .f{display:flex;align-items:center;border:1px solid #c9ced4;border-radius:6px;background:#fff;min-height:48px}
+  .f.ro{background:#f6f7f8;border-color:#e3e6ea}
+  .f input,.f select{flex:1;border:0;outline:0;background:transparent;font-size:17px;padding:12px;min-width:0;color:#2b2f36}
+  .f.ro input{color:#8a9099}
+  .f input[type=number]{-moz-appearance:textfield}
+  .f input::-webkit-outer-spin-button,.f input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .ib{border:0;background:transparent;padding:10px 14px;display:flex;align-items:center;cursor:pointer;color:#5f6368}
+  .ib svg{width:26px;height:26px;fill:currentColor}
+  .pick{display:flex;align-items:center;justify-content:center;border:1px solid #c9ced4;border-radius:6px;height:64px;color:#5f6368;cursor:pointer}
+  .pick svg{width:34px;height:34px;fill:currentColor}
+  .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .th{position:relative;width:64px;height:64px;border-radius:6px;overflow:hidden;border:1px solid #dde1e6;background:#eef1f4;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:2px}
+  .th img{width:100%;height:100%;object-fit:cover}
+  .th b{position:absolute;top:0;right:0;background:rgba(0,0,0,.65);color:#fff;width:20px;height:20px;line-height:20px;text-align:center;font-size:13px;cursor:pointer}
+  .btn{width:100%;margin-top:28px;height:52px;border:0;border-radius:6px;background:#1976d2;color:#fff;font-size:17px;font-weight:600;letter-spacing:1px}
+  .btn:disabled{opacity:.45}
+  .msg{margin-top:14px;padding:11px 12px;border-radius:6px;font-size:14px}
+  .msg.err{background:#fdecea;color:#c62828}.msg.ok{background:#e6f4ea;color:#1b7a3d}.msg.inf{background:#eaf2fb;color:#1558a8}
+  .prog{height:8px;background:#e8edf3;border-radius:4px;overflow:hidden;margin-top:16px;display:none}
+  .prog i{display:block;height:100%;width:0;background:#1976d2;transition:width .2s}
+  .hide{display:none!important}
+  .row2{display:flex;gap:12px}.row2>div{flex:1;min-width:0}
+  /* saran nama produk */
+  #sug{border:1px solid #c9ced4;border-radius:6px;margin-top:4px;max-height:280px;overflow:auto;background:#fff}
+  #sug div{padding:10px 12px;border-bottom:1px solid #eef0f3;font-size:15px}
+  #sug div:last-child{border:0}
+  #sug div:active{background:#eaf2fb}
+  #sug small{display:block;color:#6b7785;font-size:12px;margin-top:2px}
+  .lnk{display:block;margin-top:10px;padding:12px;text-align:center;background:#1976d2;color:#fff;border-radius:6px;font-weight:600;letter-spacing:.5px;cursor:pointer}
+  .msg small{display:block;margin-top:8px;color:#6b7785}
+  /* login */
+  .login{padding:20px}
+  .login select,.login input{width:100%;border:1px solid #c9ced4;border-radius:6px;padding:13px;font-size:17px;background:#fff}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="vLogin" class="hide">
+  <div class="bar"><h1>LOGIN RETUR</h1></div>
+  <div class="box login">
+    <label class="t">Nama</label>
+    <select id="lNama"></select>
+    <label class="t">PIN</label>
+    <input id="lPin" type="password" inputmode="numeric" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn" id="bLogin" onclick="doLogin()">MASUK</button>
+    <div id="lMsg"></div>
+  </div>
+</div>
+
+<!-- FORM -->
+<div id="vApp" class="hide">
+  <div class="bar">
+    <h1>SCAN PRODUK RETUR<small id="uNama"></small></h1>
+    <a href="#" onclick="doLogout();return false">Keluar</a>
+  </div>
+  <div class="box">
+
+    <div class="row2">
+      <div>
+        <label class="t">Nomor Trip<em>*</em></label>
+        <div class="f"><select id="fTrip"></select></div>
+      </div>
+      <div>
+        <label class="t">No. Kontener / Dus / Karung<em>*</em></label>
+        <div class="f"><input id="fKont" placeholder="mis. DUS-01" autocapitalize="characters" autocomplete="off"></div>
+      </div>
+    </div>
+
+    <label class="t">Produk<em>*</em></label>
+    <div class="f">
+      <input id="fProduk" placeholder="Ketik nama produk untuk mencari" autocomplete="off" oninput="onNama()">
+      <button class="ib" type="button" onclick="clearProduk()" aria-label="Hapus"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div id="sug" class="hide"></div>
+
+    <label class="t">Barcode</label>
+    <div class="f">
+      <input id="fKode" inputmode="text" autocomplete="off" placeholder="Scan atau ketik barcode / SKU"
+             oninput="onKode()" onkeydown="if(event.key==='Enter'){event.preventDefault();cari();}">
+      <label class="ib" aria-label="Scan barcode">
+        <input type="file" accept="image/*" capture="environment" class="hide" onchange="scanFoto(this)">
+        <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2zm2-2h2v2h-2v-2z"/></svg>
+      </label>
+    </div>
+
+    <label class="t">Quantity</label>
+    <div class="f">
+      <input id="fQty" type="number" inputmode="numeric" min="0" step="1" value="0">
+      <button class="ib" type="button" onclick="step(-1)" aria-label="Kurang"><svg viewBox="0 0 24 24"><path d="M5 11h14v2H5z"/></svg></button>
+      <button class="ib" type="button" onclick="step(1)" aria-label="Tambah"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>
+    </div>
+
+    <div id="gStok" class="hide">
+      <label class="t">Stok iSeller</label>
+      <div class="f ro"><input id="fStok" readonly></div>
+    </div>
+
+    <label class="t">Foto Bukti<em>*</em></label>
+    <label class="pick">
+      <input id="fFoto" type="file" accept="image/*" capture="environment" class="hide" onchange="addPhoto(this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+    </label>
+    <div id="thF" class="thumbs"></div>
+
+    <label class="t">Video Bukti (opsional)</label>
+    <label class="pick">
+      <input id="fVideo" type="file" accept="video/*" capture="environment" class="hide" onchange="addVideo(this)">
+      <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+    </label>
+    <div id="thV" class="thumbs"></div>
+
+    <div class="prog" id="prog"><i id="progI"></i></div>
+    <button class="btn" id="bEnter" onclick="kirim()">ENTER</button>
+    <div id="sMsg"></div>
+  </div>
+</div>
+
+<script>
+const REQUIRE_PHOTO = true;        // foto wajib
+const MAX_VIDEO_MB = 100;
+const CHUNK = 3 * 1024 * 1024;     // kelipatan 256 KB
+const WARN_IF_OVER_STOCK = true;   // konfirmasi jika qty retur > stok sistem
+
+let TOKEN = localStorage.getItem('rtr_token') || '';
+let NAMA = '', PROD = null, PHOTOS = [], VIDEO = null, TMR = null, TMN = null, BUSY = false;
+
+const $ = id => document.getElementById(id);
+const run = (fn, ...a) => new Promise((ok, no) =>
+  google.script.run.withSuccessHandler(ok).withFailureHandler(no)[fn](...a));
+const show = (id, on) => $(id).classList.toggle('hide', !on);
+const msg = (id, t, c) => $(id).innerHTML = t ? '<div class="msg ' + c + '">' + t + '</div>' : '';
+const errTxt = e => (e && e.message ? e.message : String(e)).replace(/^Error:\s*/, '');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- start & login ---------- */
+(async function () {
+  try {
+    const cfg = await run('getConfig');
+    $('lNama').innerHTML = cfg.names.map(n => '<option>' + esc(n) + '</option>').join('');
+    $('fTrip').innerHTML = '<option value="">Pilih trip</option>' + cfg.trips.map(t => '<option>' + t + '</option>').join('');
+    $('fTrip').value = localStorage.getItem('rtr_trip') || '';
+    $('fKont').value = localStorage.getItem('rtr_kont') || '';
+    if (TOKEN) {
+      const s = await run('checkSession', TOKEN);
+      if (s.ok) { NAMA = s.nama; return enter(); }
+    }
+  } catch (e) { msg('lMsg', errTxt(e), 'err'); }
+  show('vLogin', true);
+})();
+
+function enter() {
+  show('vLogin', false); show('vApp', true);
+  $('uNama').textContent = 'PIC: ' + NAMA;
+}
+async function doLogin() {
+  $('bLogin').disabled = true; msg('lMsg', '');
+  try {
+    const r = await run('login', $('lNama').value, $('lPin').value);
+    if (!r.ok) throw new Error(r.msg);
+    TOKEN = r.token; NAMA = r.nama; localStorage.setItem('rtr_token', TOKEN);
+    $('lPin').value = ''; enter();
+  } catch (e) { msg('lMsg', errTxt(e), 'err'); }
+  $('bLogin').disabled = false;
+}
+async function doLogout() {
+  try { await run('logout', TOKEN); } catch (e) {}
+  localStorage.removeItem('rtr_token'); TOKEN = '';
+  show('vApp', false); show('vLogin', true);
+}
+function sessionExpired() {
+  localStorage.removeItem('rtr_token'); TOKEN = '';
+  show('vApp', false); show('vLogin', true);
+  msg('lMsg', 'Sesi habis, silakan login lagi.', 'err');
+}
+const sesiHabis = e => errTxt(e).indexOf('SESI_HABIS') >= 0;
+
+/* ---------- produk: set / hapus ---------- */
+function setProduk(p) {
+  PROD = p;
+  $('fProduk').value = p.produk;
+  $('fKode').value = p.barcode || p.sku || '';
+  $('fStok').value = p.stok;
+  show('gStok', true); show('sug', false); msg('sMsg', '');
+}
+function resetProduk() {
+  PROD = null; $('fStok').value = ''; show('gStok', false);
+}
+function clearProduk() {
+  resetProduk(); $('fProduk').value = ''; $('fKode').value = ''; show('sug', false); msg('sMsg', '');
+}
+
+/* ---------- cari lewat barcode / SKU ---------- */
+function onKode() {
+  clearTimeout(TMR);
+  resetProduk(); $('fProduk').value = '';
+  const v = $('fKode').value.trim();
+  if (!v) { msg('sMsg', ''); return; }
+  TMR = setTimeout(cari, 600);
+}
+async function cari() {
+  clearTimeout(TMR);
+  const v = $('fKode').value.trim();
+  if (!v) return;
+  try {
+    const r = await run('cariProduk', TOKEN, v);
+    if (v !== $('fKode').value.trim()) return;
+    if (!r.found) { resetProduk(); $('fProduk').value = ''; return msg('sMsg', 'Barcode / SKU "' + esc(v) + '" tidak ditemukan. Coba cari lewat nama produk.', 'err'); }
+    setProduk(r.p);
+  } catch (e) { if (sesiHabis(e)) sessionExpired(); else msg('sMsg', errTxt(e), 'err'); }
+}
+
+/* ---------- cari lewat nama produk ---------- */
+function onNama() {
+  clearTimeout(TMN);
+  resetProduk(); $('fKode').value = '';
+  const q = $('fProduk').value.trim();
+  if (q.length < 2) { show('sug', false); return; }
+  TMN = setTimeout(async () => {
+    try {
+      const list = await run('cariNama', TOKEN, q);
+      if (q !== $('fProduk').value.trim()) return;
+      const box = $('sug');
+      if (!list.length) { box.innerHTML = '<div>Produk tidak ditemukan</div>'; show('sug', true); return; }
+      box.innerHTML = '';
+      list.forEach(p => {
+        const d = document.createElement('div');
+        d.innerHTML = esc(p.produk) + '<small>' + (p.barcode ? 'Barcode ' + esc(p.barcode) : (p.sku ? 'SKU ' + esc(p.sku) : 'Tanpa barcode/SKU')) + ' | Stok ' + p.stok + '</small>';
+        d.onclick = () => setProduk(p);
+        box.appendChild(d);
+      });
+      show('sug', true);
+    } catch (e) { if (sesiHabis(e)) sessionExpired(); else msg('sMsg', errTxt(e), 'err'); }
+  }, 450);
+}
+
+function step(n) { $('fQty').value = Math.max(0, (parseInt($('fQty').value, 10) || 0) + n); }
+
+/* ---------- SCAN BARCODE BATANG & QR (lewat foto kamera) ---------- */
+function gotCode(code) {
+  if (navigator.vibrate) navigator.vibrate(80);
+  $('fKode').value = code; resetProduk(); $('fProduk').value = ''; msg('sMsg', '');
+  cari();
+}
+
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function fmtTime(d) {
+  return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' +
+    pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+
+/* ---------- membaca barcode dari foto ---------- */
+let ZXLOAD = null;
+function loadZX() {
+  if (window.ZXing) return Promise.resolve();
+  if (!ZXLOAD) ZXLOAD = new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+    s.onload = ok; s.onerror = () => { ZXLOAD = null; no(new Error('Library scanner gagal dimuat (cek internet)')); };
+    document.head.appendChild(s);
+  });
+  return ZXLOAD;
+}
+function loadImg(url) {
+  return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('Foto tidak bisa dibaca')); i.src = url; });
+}
+function mkCanvas(img, max, rotate) {
+  const s = Math.min(1, max / Math.max(img.width, img.height));
+  const w = Math.round(img.width * s), h = Math.round(img.height * s);
+  const c = document.createElement('canvas');
+  c.width = rotate ? h : w; c.height = rotate ? w : h;
+  const g = c.getContext('2d');
+  if (rotate) { g.translate(c.width, 0); g.rotate(Math.PI / 2); }
+  g.drawImage(img, 0, 0, w, h);
+  return c;
+}
+async function decodeBarcode(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    const tries = [[1600, 0], [2400, 0], [1000, 0], [1600, 1], [1000, 1]];
+    if ('BarcodeDetector' in window) {
+      try {
+        const det = new BarcodeDetector();
+        for (const t of tries) { const r = await det.detect(mkCanvas(img, t[0], t[1])); if (r.length) return r[0].rawValue; }
+      } catch (e) { /* lanjut ke ZXing */ }
+    }
+    await loadZX();
+    const hints = new Map(); hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    const reader = new ZXing.BrowserMultiFormatReader(hints);
+    for (const t of tries) {
+      try { const r = await reader.decodeFromImageUrl(mkCanvas(img, t[0], t[1]).toDataURL('image/jpeg', 0.92)); if (r) return r.getText(); }
+      catch (e) { /* coba berikutnya */ }
+    }
+    return null;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function scanFoto(inp) {
+  const f = inp.files[0]; inp.value = '';
+  if (!f) return;
+  msg('sMsg', 'Membaca barcode...', 'inf');
+  try {
+    const code = await decodeBarcode(f);
+    if (!code) return msg('sMsg', 'Barcode tidak terbaca. Foto lebih dekat sampai barcode memenuhi layar, tegak lurus, terang, dan tidak buram. Atau ketik barcode / cari lewat nama.', 'err');
+    gotCode(code);
+  } catch (e) { msg('sMsg', errTxt(e), 'err'); }
+}
+
+/* ---------- foto & video bukti ---------- */
+function renderThumbs() {
+  $('thF').innerHTML = '';
+  PHOTOS.forEach((p, i) => {
+    const d = document.createElement('div'); d.className = 'th';
+    d.innerHTML = '<img src="' + p.url + '"><b onclick="delPhoto(' + i + ')">×</b>';
+    $('thF').appendChild(d);
+  });
+  $('thV').innerHTML = VIDEO
+    ? '<div class="th">' + (VIDEO.size / 1048576).toFixed(1) + ' MB<b onclick="delVideo()">×</b></div>' : '';
+}
+function delPhoto(i) { URL.revokeObjectURL(PHOTOS[i].url); PHOTOS.splice(i, 1); renderThumbs(); }
+function delVideo() { VIDEO = null; renderThumbs(); }
+
+async function addPhoto(inp) {
+  const f = inp.files[0]; inp.value = '';
+  if (!f) return;
+  try {
+    const blob = await prepPhoto(f);
+    PHOTOS.push({ blob: blob, url: URL.createObjectURL(blob) });
+    renderThumbs();
+  } catch (e) { msg('sMsg', errTxt(e), 'err'); }
+}
+function addVideo(inp) {
+  const f = inp.files[0]; inp.value = '';
+  if (!f) return;
+  if (f.size > MAX_VIDEO_MB * 1048576) return msg('sMsg', 'Video terlalu besar (maks ' + MAX_VIDEO_MB + ' MB).', 'err');
+  VIDEO = f; renderThumbs();
+}
+
+function prepPhoto(file) {           // kompres + cap waktu, PIC, trip, kontener
+  return new Promise((ok, no) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const s = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0, c.width, c.height);
+      const t = fmtTime(new Date(file.lastModified || Date.now())) + ' | ' + NAMA + ' | ' + $('fTrip').value + ' | ' + $('fKont').value + (PROD ? ' | ' + PROD.produk : '');
+      const fs = Math.max(14, Math.round(c.width / 38));
+      g.font = 'bold ' + fs + 'px sans-serif';
+      const w = Math.min(c.width, g.measureText(t).width + 16);
+      g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, c.height - fs - 14, w, fs + 14);
+      g.fillStyle = '#fff'; g.fillText(t, 8, c.height - 9);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? ok(b) : no(new Error('Gagal memproses foto')), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => no(new Error('Foto tidak bisa dibaca'));
+    img.src = url;
+  });
+}
+
+/* ---------- upload ke Drive per potongan ---------- */
+function blobToB64(blob) {
+  return new Promise((ok, no) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result).split(',')[1]);
+    r.onerror = () => no(new Error('Gagal membaca file'));
+    r.readAsDataURL(blob);
+  });
+}
+async function uploadBlob(blob, name, mime, onBytes) {
+  const st = await run('startUpload', TOKEN, name, mime, blob.size);
+  let pos = 0, res;
+  while (pos < blob.size) {
+    const part = blob.slice(pos, Math.min(pos + CHUNK, blob.size));
+    const b64 = await blobToB64(part);
+    let tries = 0;
+    while (true) {
+      try { res = await run('uploadChunk', TOKEN, st.sessionUrl, b64, pos, blob.size, mime); break; }
+      catch (e) { if (++tries >= 3) throw e; await new Promise(r => setTimeout(r, 1500)); }
+    }
+    pos += part.size; onBytes(part.size);
+  }
+  if (!res || !res.done) throw new Error('Upload belum selesai');
+  return res.url;
+}
+
+/* ---------- ENTER ---------- */
+async function kirim() {
+  if (BUSY) return;
+  msg('sMsg', '');
+  const trip = $('fTrip').value, kont = $('fKont').value.trim();
+  const qty = parseInt($('fQty').value, 10) || 0;
+  if (!trip) return msg('sMsg', 'Pilih nomor trip.', 'err');
+  if (!kont) return msg('sMsg', 'Isi nomor kontener / dus / karung.', 'err');
+  if (!PROD) return msg('sMsg', 'Pilih produk: scan barcode, ketik barcode/SKU, atau cari lewat nama.', 'err');
+  if (qty <= 0) return msg('sMsg', 'Quantity harus lebih dari 0.', 'err');
+  if (REQUIRE_PHOTO && !PHOTOS.length) return msg('sMsg', 'Foto bukti wajib diambil.', 'err');
+  if (WARN_IF_OVER_STOCK && qty > PROD.stok &&
+      !confirm('Qty retur (' + qty + ') lebih besar dari stok sistem (' + PROD.stok + '). Tetap simpan?')) return;
+
+  localStorage.setItem('rtr_trip', trip); localStorage.setItem('rtr_kont', kont);
+  BUSY = true; $('bEnter').disabled = true; $('prog').style.display = 'block';
+  try {
+    const items = PHOTOS.map((p, i) => ({ b: p.blob, n: 'foto' + (i + 1) + '.jpg', m: 'image/jpeg', v: false }));
+    if (VIDEO) items.push({ b: VIDEO, n: VIDEO.name || 'video.mp4', m: VIDEO.type || 'video/mp4', v: true });
+    const total = items.reduce((a, x) => a + x.b.size, 0) || 1;
+    let done = 0;
+    const onBytes = n => { done += n; $('progI').style.width = Math.round(done / total * 100) + '%'; };
+    const fotoUrl = [], videoUrl = [];
+    for (const x of items) (x.v ? videoUrl : fotoUrl).push(await uploadBlob(x.b, x.n, x.m, onBytes));
+
+    const r = await run('saveRetur', TOKEN, {
+      row: PROD.row, produk: PROD.produk, trip: trip, kontener: kont,
+      qty: qty, foto: fotoUrl, video: videoUrl
+    });
+    clearProduk(); $('fQty').value = 0;     // trip & kontener tetap, siap input produk berikutnya
+    PHOTOS.forEach(p => URL.revokeObjectURL(p.url)); PHOTOS = []; VIDEO = null; renderThumbs();
+    msg('sMsg', 'Tersimpan (' + r.id + ')', 'ok');
+  } catch (e) {
+    if (sesiHabis(e)) sessionExpired();
+    else msg('sMsg', 'Gagal: ' + errTxt(e), 'err');
+  }
+  $('prog').style.display = 'none'; $('progI').style.width = '0';
+  BUSY = false; $('bEnter').disabled = false;
+}
+</script>
+</body>
+</html>
