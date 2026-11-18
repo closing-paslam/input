@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<base target="_top">
 <meta charset="utf-8">
+<title>Retur Barang</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -44,6 +44,11 @@
   #sug small{display:block;color:#6b7785;font-size:12px;margin-top:2px}
   .lnk{display:block;margin-top:10px;padding:12px;text-align:center;background:#1976d2;color:#fff;border-radius:6px;font-weight:600;letter-spacing:.5px;cursor:pointer}
   .msg small{display:block;margin-top:8px;color:#6b7785}
+  #scan{position:fixed;inset:0;background:#000;z-index:20;display:flex;flex-direction:column}
+  #scan video{flex:1;width:100%;object-fit:cover}
+  #scan .fr{position:absolute;left:10%;right:10%;top:30%;height:22%;border:2px solid #4cf08a;border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+  #scan p{position:absolute;top:18px;left:0;right:0;text-align:center;color:#fff;margin:0;font-size:15px;padding:0 12px}
+  #scan button{position:absolute;bottom:28px;left:22%;right:22%;height:48px;border:0;border-radius:24px;background:#fff;font-size:16px}
   /* login */
   .login{padding:20px}
   .login select,.login input{width:100%;border:1px solid #c9ced4;border-radius:6px;padding:13px;font-size:17px;background:#fff}
@@ -94,10 +99,7 @@
     <div class="f">
       <input id="fKode" inputmode="text" autocomplete="off" placeholder="Scan atau ketik barcode / SKU"
              oninput="onKode()" onkeydown="if(event.key==='Enter'){event.preventDefault();cari();}">
-      <label class="ib" aria-label="Scan barcode">
-        <input type="file" accept="image/*" capture="environment" class="hide" onchange="scanFoto(this)">
-        <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2zm2-2h2v2h-2v-2z"/></svg>
-      </label>
+      <button class="ib" type="button" onclick="openScan()" aria-label="Scan barcode"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2zm2-2h2v2h-2v-2z"/></svg></button>
     </div>
 
     <label class="t">Quantity</label>
@@ -132,18 +134,74 @@
   </div>
 </div>
 
+<!-- SCANNER KAMERA LIVE -->
+<div id="scan" class="hide">
+  <video id="cam" playsinline muted></video>
+  <div class="fr"></div>
+  <p id="scanTxt">Arahkan kamera ke barcode atau QR</p>
+  <button onclick="closeScan()">Tutup</button>
+</div>
+
 <script>
 const REQUIRE_PHOTO = true;        // foto wajib
 const MAX_VIDEO_MB = 100;
-const CHUNK = 3 * 1024 * 1024;     // kelipatan 256 KB
+const CHUNK = 2 * 1024 * 1024;     // kelipatan 256 KB
 const WARN_IF_OVER_STOCK = true;   // konfirmasi jika qty retur > stok sistem
 
 let TOKEN = localStorage.getItem('rtr_token') || '';
 let NAMA = '', PROD = null, PHOTOS = [], VIDEO = null, TMR = null, TMN = null, BUSY = false;
 
 const $ = id => document.getElementById(id);
-const run = (fn, ...a) => new Promise((ok, no) =>
-  google.script.run.withSuccessHandler(ok).withFailureHandler(no)[fn](...a));
+const API_URL = 'GANTI_DENGAN_URL_EXEC_APPS_SCRIPT';   // <-- tempel URL /exec Apps Script Anda di sini
+
+async function apiGet(p) {
+  const u = new URL(API_URL);
+  Object.keys(p).forEach(k => u.searchParams.set(k, p[k]));
+  let r;
+  try { r = await fetch(u.toString()); } catch (e) { throw new Error('Tidak bisa terhubung ke server. Cek internet.'); }
+  if (!r.ok) throw new Error('Server menjawab ' + r.status);
+  const j = await r.json();
+  if (j.s !== 'ok') throw new Error(j.msg || 'Gagal');
+  return j;
+}
+const idOf = u => { const m = String(u).match(/\/d\/([\w-]+)/); return m ? m[1] : ''; };
+const tdkAda = e => /tidak ditemukan/i.test(e.message);
+
+async function run(fn, ...a) {
+  if (API_URL.indexOf('GANTI') === 0) throw new Error('Alamat API belum diisi di file index.html');
+  switch (fn) {
+    case 'getConfig': { const j = await apiGet({ app: 'names' }); return { names: j.names, trips: j.trips }; }
+    case 'checkSession':
+      try { await apiGet({ app: 'cek', token: a[0] }); return { ok: true, nama: localStorage.getItem('rtr_nama') || '' }; }
+      catch (e) { return { ok: false }; }
+    case 'login':
+      try { const j = await apiGet({ app: 'login', nama: a[0], pin: a[1] }); localStorage.setItem('rtr_nama', j.nama); return { ok: true, token: j.token, nama: j.nama }; }
+      catch (e) { return { ok: false, msg: e.message }; }
+    case 'logout': return {};
+    case 'cariProduk':
+      try { const j = await apiGet({ app: 'cari', token: a[0], kode: a[1] }); return { found: true, p: j }; }
+      catch (e) { if (tdkAda(e)) return { found: false }; throw e; }
+    case 'cariNama':
+      try { return (await apiGet({ app: 'nama', token: a[0], q: a[1] })).items; }
+      catch (e) { if (tdkAda(e)) return []; throw e; }
+    case 'startUpload': { const j = await apiGet({ app: 'start', token: a[0], name: a[1], mime: a[2] }); return { sessionUrl: j.url }; }
+    case 'uploadChunk': {
+      let r;
+      try { r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ act: 'chunk', token: a[0], url: a[1], b64: a[2], start: a[3], total: a[4], mime: a[5] }) }); }
+      catch (e) { throw new Error('Koneksi terputus saat upload'); }
+      const j = await r.json();
+      if (j.s !== 'ok') throw new Error(j.msg || 'Upload gagal');
+      return j.done ? { done: true, id: j.id, url: 'https://drive.google.com/file/d/' + j.id + '/view' } : { done: false };
+    }
+    case 'saveRetur': {
+      const d = a[1];
+      const j = await apiGet({ app: 'simpan', token: a[0], row: d.row, trip: d.trip, kont: d.kontener, qty: d.qty,
+        foto: d.foto.map(idOf).join(','), video: d.video.map(idOf).join(',') });
+      return { ok: true, id: j.id };
+    }
+  }
+  throw new Error('Perintah tidak dikenal: ' + fn);
+}
 const show = (id, on) => $(id).classList.toggle('hide', !on);
 const msg = (id, t, c) => $(id).innerHTML = t ? '<div class="msg ' + c + '">' + t + '</div>' : '';
 const errTxt = e => (e && e.message ? e.message : String(e)).replace(/^Error:\s*/, '');
@@ -263,6 +321,48 @@ function pad2(n) { return (n < 10 ? '0' : '') + n; }
 function fmtTime(d) {
   return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' +
     pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+
+/* ---------- SCAN LIVE (kamera langsung) ---------- */
+let STREAM = null, SCANNING = false, ZX = null;
+function fotoLink() {
+  return '<label class="lnk">SCAN LEWAT FOTO<input type="file" accept="image/*" capture="environment" class="hide" onchange="scanFoto(this)"></label>';
+}
+async function openScan() {
+  msg('sMsg', '');
+  show('scan', true); SCANNING = true; $('scanTxt').textContent = 'Arahkan kamera ke barcode atau QR';
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Kamera tidak didukung / halaman tidak aman (harus https)');
+    STREAM = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+    const v = $('cam'); v.srcObject = STREAM; await v.play();
+    try {
+      const tr = STREAM.getVideoTracks()[0], cap = tr.getCapabilities ? tr.getCapabilities() : {};
+      if (cap.focusMode && cap.focusMode.indexOf('continuous') >= 0) tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+    } catch (e) {}
+    if ('BarcodeDetector' in window) {
+      const det = new BarcodeDetector();
+      (async function loop() {
+        while (SCANNING) {
+          try { const c = await det.detect(v); if (c.length) { liveHit(c[0].rawValue); return; } } catch (e) {}
+          await new Promise(r => setTimeout(r, 120));
+        }
+      })();
+    } else {
+      await loadZX();
+      ZX = new ZXing.BrowserMultiFormatReader();
+      ZX.decodeFromVideoElement(v, res => { if (res && SCANNING) liveHit(res.getText()); });
+    }
+  } catch (e) {
+    closeScan();
+    $('sMsg').innerHTML = '<div class="msg err">Kamera scan tidak bisa dibuka (' + esc(e.name || '') + ' ' + esc(e.message || '') + ').<br>Gunakan cara cadangan:' + fotoLink() + '</div>';
+  }
+}
+function liveHit(code) { closeScan(); gotCode(code); }
+function closeScan() {
+  SCANNING = false;
+  try { if (ZX) ZX.reset(); } catch (e) {}
+  if (STREAM) STREAM.getTracks().forEach(t => t.stop());
+  STREAM = null; show('scan', false);
 }
 
 /* ---------- membaca barcode dari foto ---------- */
